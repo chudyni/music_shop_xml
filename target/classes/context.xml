@@ -10,18 +10,53 @@
 		http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd">
 
     <beans:bean id="filter" class="musicshop.endpoint.MusicItemPackageFilter"></beans:bean>
+    <beans:bean id="splitter" class="musicshop.endpoint.GuitarSplitter"></beans:bean>
+    <beans:bean id="router" class="musicshop.endpoint.GuitarRouter"></beans:bean>
+    <beans:bean id="gibsonTransformer" class="musicshop.endpoint.GibsonTransformer"></beans:bean>
+    <beans:bean id="fenderTransformer" class="musicshop.endpoint.FenderTransformer"></beans:bean>
+    <beans:bean id="gibsonAggregator" class="musicshop.endpoint.GibsonAggregator"></beans:bean>
+    <beans:bean id="fenderAggregator" class="musicshop.endpoint.FenderAggregator"></beans:bean>
+    <beans:bean id="printService" class="musicshop.endpoint.PrintServiceActivator"></beans:bean>
 
+    <!-- Channels -->
+    <int:channel id="musicItemsPackageChannel" />
+    <int:channel id="guitarsChannel" />
+    <int:channel id="routingChannel" />
+    <int:channel id="fenderChannel" />
+    <int:channel id="gibsonChannel" />
+    <int:channel id="signedFenderChannel" />
+    <int:channel id="signedGibsonChannel" />
+    <int:channel id="endChannel" />
+
+    <!-- Test print channel -->
+    <!--<int-stream:stdout-channel-adapter id="endChannel"/>-->
+
+    <!-- Integration beans -->
     <int:gateway service-interface="musicshop.endpoint.MusicItemsPackageGateway" id="musicItemsPackageGateway"
                  default-request-channel="musicItemsPackageChannel"/>
 
     <int:filter ref="filter" method="guitarsOnly"
                 input-channel="musicItemsPackageChannel" output-channel="guitarsChannel"/>
 
-    <!-- Channels -->
-    <int:channel id="musicItemsPackageChannel" />
-    <!--<int:channel id="guitarsChannel" />-->
+    <int:splitter ref="splitter" method="splitGuitars"
+                  input-channel="guitarsChannel" output-channel="routingChannel" />
 
-    <int-stream:stdout-channel-adapter id="guitarsChannel"/>
+    <int:router ref="router" method="routeGuitar"
+                input-channel="routingChannel"/>
 
+    <int:transformer ref="gibsonTransformer" method="signGibson"
+                     input-channel="gibsonChannel" output-channel="signedGibsonChannel" />
+
+    <int:transformer ref="fenderTransformer" method="signFender"
+                     input-channel="fenderChannel" output-channel="signedFenderChannel" />
+
+    <int:aggregator ref="gibsonAggregator" method="completeGibsons" release-strategy-method="releaseChecker"
+                    input-channel="signedGibsonChannel" output-channel="endChannel" />
+
+    <int:aggregator ref="fenderAggregator" method="completeFenders" release-strategy-method="releaseChecker"
+                    input-channel="signedFenderChannel" output-channel="endChannel" />
+
+    <int:service-activator ref="printService" method="print"
+                           input-channel="endChannel" output-channel="nullChannel" />
 
 </beans:beans>

@@ -39,7 +39,6 @@ public class MusicShopXML {
 
         final List<Guitar> guitars = new ArrayList<Guitar>(Arrays.asList(guitar1, guitar2, guitar3));
 
-
         final MusicItemsPackage musicItemsPackage = new MusicItemsPackage();
         musicItemsPackage.setItems(guitars);
 
